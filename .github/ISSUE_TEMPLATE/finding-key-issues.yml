@@ -14,11 +14,12 @@ body:
     validations:
       required: true
       
- - type: textarea
-    id: file_link
-    attributes:
-      description: "文章鏈結"
-      placeholder: "[檔案路徑](../blob/master/檔名.txt)"
+- type: input
+  id: file_link
+  attributes:
+    label: "📝 文章檔案連結"
+    description: "請提供你的寫作文章檔案連結或路徑。"
+    placeholder: "例如：../blob/master/path/to/your/file.md"
 
 
   - type: input
