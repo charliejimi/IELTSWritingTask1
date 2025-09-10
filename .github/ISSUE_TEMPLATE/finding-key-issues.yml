@@ -1,0 +1,78 @@
+name: IELTS Writing Task 1 - AI vs Self Assessment
+description: "使用此範本來比較、分析並反思雅思 Task 1 的自我評分與 AI 評分。"
+title: "[Task 1] "
+labels: ["IELTS", "Task 1", "AI Comparison"]
+assignees: []
+
+body:
+  - type: input
+    id: task_name
+    attributes:
+      label: "1️⃣ 題目名稱/編號"
+      description: "請填寫這次練習的題目名稱或劍橋雅思的編號。"
+      placeholder: "例如：Cambridge IELTS 18, Test 1"
+    validations:
+      required: true
+
+  - type: input
+    id: writing_date
+    attributes:
+      label: "📅 寫作日期"
+      placeholder: "YYYY-MM-DD"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: question_type
+    attributes:
+      label: "📊 題型"
+      description: "請選擇這次寫作的圖表題型。"
+      options:
+        - Line Graph
+        - Bar Chart
+        - Pie Chart
+        - Table
+        - Map
+        - Process Diagram
+        - Mixed
+    validations:
+      required: true
+
+  - type: textarea
+    id: self_assessment
+    attributes:
+      label: "2️⃣ 自我評估分數 (Self Assessment)"
+      description: "請填寫你對 IELTS 四大核心維度的自評分數 (0~9)，並補充其他觀察"
+      placeholder: "Task Response (TR): \nCoherence & Cohesion (CC): \nLexical Resource (LR): \nGrammatical Range & Accuracy (GRA): \n其他觀察/備註:"
+
+  - type: textarea
+    id: ai_assessment
+    attributes:
+      label: "3️⃣ AI 評分 (AI Scoring)"
+      description: "填入 AI 對四大核心維度的評分與建議評語"
+      placeholder: "Task Response (TR): \nCoherence & Cohesion (CC): \nLexical Resource (LR): \nGrammatical Range & Accuracy (GRA): \nAI 評語:"
+
+  - type: checkboxes
+    id: difference_analysis
+    attributes:
+      label: "4️⃣ 差異判斷 (Difference Analysis)"
+      description: "勾選本篇文章與 AI 評分的差異類型，並補充原因與判斷"
+      options:
+        - label: "自評高 / AI 低 → 自我盲點"
+        - label: "自評低 / AI 高 → 認知保守"
+        - label: "自評 ≈ AI → 共識問題"
+        - label: "分數接近但理由不同 → 認知偏差"
+
+  - type: textarea
+    id: reflection_action
+    attributes:
+      label: "5️⃣ 背脊反思與行動 (Reflection & Action)"
+      description: "針對每個差異類型列出具體修正行動，例如重寫段落、收錄最佳範例、micro drills 或驗證 AI 建議"
+      placeholder: "自我盲點修正: \n認知保守收錄: \n共識問題訓練: \n理由偏差驗證:"
+
+  - type: textarea
+    id: additional_notes
+    attributes:
+      label: "6️⃣ 其他備註 (Optional Notes)"
+      description: "填寫額外備註，例如寫作心得、詞彙卡片、特別觀察"
+      placeholder: "請填寫備註或心得"
