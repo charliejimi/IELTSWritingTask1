@@ -14,12 +14,13 @@ body:
     validations:
       required: true
       
-  - type: textarea
-    id: file_link
+  - type: input
+    id: task_file
     attributes:
-      label: "📝 文章檔案連結"
-      description: "請提供你的寫作文章檔案連結或路徑。"
-      placeholder: "例如：../blob/master/path/to/your/file.md"
+      label: "文章檔案連結"
+      description: "輸入 txt 檔案名稱，例如 Maps_Islip_1.0.txt（系統會提示可用檔案）"
+    validations:
+      required: true
 
   - type: input
     id: writing_date
