@@ -9,8 +9,8 @@ body:
     id: task_name
     attributes:
       label: "1️⃣ 題目名稱/編號"
-      description: "請填寫這次練習的題目名稱或劍橋雅思的編號。"
-      placeholder: "例如：Cambridge IELTS 18, Test 1"
+      description: "請填寫這次練習的題目名稱代號"
+      placeholder: "例如：WT1_Two_Pies"
     validations:
       required: true
 
@@ -66,15 +66,14 @@ body:
   - type: textarea
     id: reflection_action
     attributes:
-      label: "5️⃣ 背脊反思與行動 (Reflection & Action)"
+      label: "5️⃣ 反思與行動 (Reflection & Action)"
       description: "針對每個差異類型列出具體修正行動，並可附 Project 或任務連結"
       placeholder: |
         🔹 自我盲點修正 (需重寫或改善段落): 
         🔹 認知保守收錄 (存入最佳範例庫或模板): 
         🔹 共識問題訓練 (指定練習任務或練習題): 
         🔹 理由偏差驗證 (你與 AI 給出不同原因但結果相似時，需比對 AI 評語或高分範文，找出真正原因): 
-        🔹 Project Link / Task URL:
-
+   
   - type: textarea
     id: additional_notes
     attributes:
