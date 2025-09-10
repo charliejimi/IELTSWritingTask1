@@ -7,6 +7,9 @@ on:
 jobs:
   validate_file:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write  # 新增的權限設定，允許寫入 Issue
+      contents: read  # 確保可以讀取儲存庫內容
 
     steps:
       - name: Checkout repo
