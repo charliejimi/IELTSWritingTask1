@@ -1,0 +1,13 @@
+The graphs show education levels in Glasgow, Scotland, in 2010.
+
+Overall, the older the people were, the less educated they tended to be. In terms of individual education level, university degree holders made up the largest proportion in each age group, with the exception of the oldest age group. Furthermore, the distribution of education levels between women and men  was relatively similar.
+
+According to the bar graph, university degree holders in the 24–35 age group accounted for the largest share, at 76%, which was 5% higher than the age groups of 16–24 and 35–50, and exceeded that of the 50–75 age group by 21%. In contrast to them, those with school certificates in the 16–24 and 35–50 age groups accounted for marginally  less than one-third of the university degree holders, while in the 24–35's, they accounted for slightly less than one-fifth. Turning to people without formal qualifications, they stood at only 9% in each age group ranging from 16 to 50, which reveals a gap of 21 percentage points when compared to the 50 to 75 age group, where the percentage was 30%. The proportion of individuals without qualifications in the over-75 age group was up to 72%, compared to just 3% of the population holding school certificates.
+
+In terms of the pie chart, the proportion of each category across women and men remained remarkably similar. The percentage of women with university degrees was exactly 29% and three points lower than men’s. In contrast, the share of the ‘no qualifications’ category for women was exactly 38% too and was three points higher than men’s. Women and men had the same share of school certificates, at 33% each.
+
+
+####
+According to the bar graph, university degree holders in the 24–35 age group accounted for the largest share, at 76%.
+The figure for this group was substantially higher than that of the 50–75's by 21%, and slightly higher than that of the 16–24's and the 35–50's by 5%.  
+For people aged 16 to 50 with school certificates, they accounted for marginally less than one-third of the university degree holders, except for those aged 24-35, whose percentage stood at slightly less than one-fifth. Just 9% of the 16-50s were people without formal qualifications, which reveals a gap of 21 percentage points when compared to the 50 to 75 age group, where the percentage was 30%. As age increased to over 75, the proportion of individuals without qualifications was up to 72%, whereas just 3% of the population held school certificates.
