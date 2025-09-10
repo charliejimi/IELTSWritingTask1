@@ -16,13 +16,13 @@ jobs:
         id: parse
         run: |
           echo "Parsing file name from issue body..."
-          # 原始腳本的 jq 查詢失敗，因為它尋找的是 'task_file:'
-          # 新的腳本使用 grep -oP 搭配 lookbehind，精準地從 '文章檔案連結' 後方提取檔案名稱。
-          FILE_NAME=$(echo "${{ github.event.issue.body }}" | grep -oP '文章檔案連結\n\n\K.*' | head -n 1)
+          # 這個新的腳本使用 grep 尋找標題，然後用 tail 提取後方緊接著的內容。
+          # 這樣能確保不受空白行或換行符號格式的影響，更可靠地提取檔案名稱。
+          FILE_NAME=$(echo "${{ github.event.issue.body }}" | grep -A 1 '文章檔案連結' | tail -n 1 | xargs)
           
           # 檢查是否成功提取檔案名稱
           if [ -z "$FILE_NAME" ]; then
-            echo "Error: Could not find '文章檔案連結' in issue body."
+            echo "Error: Could not find a valid file name after '文章檔案連結'."
             exit 1
           fi
 
@@ -50,7 +50,6 @@ jobs:
             echo "File exists."
           else
             echo "File not found. Suggesting candidates..."
-            # 確保使用正確的環境變數 ${{ env.file_name }} 和 ${{ env.all_files }}
             gh issue comment ${{ github.event.issue.number }} --body "⚠️ 檔案 `${{ env.file_name }}` 不存在！可選檔案如下:\n${{ env.all_files }}"
             exit 1
           fi
