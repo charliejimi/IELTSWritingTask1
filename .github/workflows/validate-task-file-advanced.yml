@@ -15,9 +15,19 @@ jobs:
       - name: Parse file name from issue
         id: parse
         run: |
-          echo "Parsing task_file from issue body..."
-          FILE_NAME=$(jq -r '.issue.body | match("task_file:\\s*(.*)"); .captures[0].string' <<< "${{ toJson(github.event) }}")
+          echo "Parsing file name from issue body..."
+          # 原始腳本的 jq 查詢失敗，因為它尋找的是 'task_file:'
+          # 新的腳本使用 grep -oP 搭配 lookbehind，精準地從 '文章檔案連結' 後方提取檔案名稱。
+          FILE_NAME=$(echo "${{ github.event.issue.body }}" | grep -oP '文章檔案連結\n\n\K.*' | head -n 1)
+          
+          # 檢查是否成功提取檔案名稱
+          if [ -z "$FILE_NAME" ]; then
+            echo "Error: Could not find '文章檔案連結' in issue body."
+            exit 1
+          fi
+
           echo "file_name=$FILE_NAME" >> $GITHUB_ENV
+          echo "Extracted file name: $FILE_NAME"
 
       - name: List all txt files
         id: listfiles
@@ -29,7 +39,7 @@ jobs:
       - name: Check if file exists and suggest candidates
         run: |
           FOUND=false
-          for f in $FILES; do
+          for f in ${{ env.all_files }}; do
             if [ "$f" = "${{ env.file_name }}" ]; then
               FOUND=true
               break
@@ -40,7 +50,8 @@ jobs:
             echo "File exists."
           else
             echo "File not found. Suggesting candidates..."
-            gh issue comment ${{ github.event.issue.number }} --body "⚠️ 檔案 `${{ env.file_name }}` 不存在！可選檔案如下:\n$FILES"
+            # 確保使用正確的環境變數 ${{ env.file_name }} 和 ${{ env.all_files }}
+            gh issue comment ${{ github.event.issue.number }} --body "⚠️ 檔案 `${{ env.file_name }}` 不存在！可選檔案如下:\n${{ env.all_files }}"
             exit 1
           fi
 
@@ -56,5 +67,5 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.issue.number }}
           body: |
-            ✅ 檔案已驗證存在  
+            ✅ 檔案已驗證存在
             檔案連結: [${{ env.file_name }}](https://github.com/${{ github.repository }}/blob/master/${{ env.file_name }})
