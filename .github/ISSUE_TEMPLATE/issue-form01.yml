@@ -1,4 +1,5 @@
 name: IELTS Writing Task 1 - AI vs Self Assessment
+description: "使用此範本來比較、分析並反思雅思 Task 1 的自我評分與 AI 評分。" # ✨ 新增這一行
 title: "[Task 1] {{title}}"
 labels: ["IELTS", "Task 1", "AI Comparison"]
 assignees: []
