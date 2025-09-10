@@ -8,8 +8,8 @@ jobs:
   validate_file:
     runs-on: ubuntu-latest
     permissions:
-      issues: write  # 新增的權限設定，允許寫入 Issue
-      contents: read  # 確保可以讀取儲存庫內容
+      issues: write
+      contents: read
 
     steps:
       - name: Checkout repo
@@ -46,25 +46,29 @@ jobs:
       - name: List all txt files
         id: listfiles
         run: |
-          FILES=$(find . -maxdepth 1 -name "*.txt" -printf "%f\n")
-          echo "all_files=$FILES" >> $GITHUB_ENV
-          echo "Available files: $FILES"
+          # Use `find` to get the list and store it with newlines for safe iteration.
+          find . -maxdepth 1 -name "*.txt" -printf "%f\n" > all_files.txt
+          echo "Available files:"
+          cat all_files.txt
 
       - name: Check if file exists and suggest candidates
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           FOUND=false
-          for f in ${{ env.all_files }}; do
+          while read -r f; do
             if [ "$f" = "${{ env.file_name }}" ]; then
               FOUND=true
               break
             fi
-          done
+          done < all_files.txt
 
           if [ "$FOUND" = true ]; then
             echo "File exists."
           else
             echo "File not found. Suggesting candidates..."
-            gh issue comment ${{ github.event.issue.number }} --body "⚠️ 檔案 `${{ env.file_name }}` 不存在！可選檔案如下:\n${{ env.all_files }}"
+            AVAILABLE_FILES=$(cat all_files.txt)
+            gh issue comment ${{ github.event.issue.number }} --body "⚠️ 檔案 `${{ env.file_name }}` 不存在！可選檔案如下:\n$AVAILABLE_FILES"
             exit 1
           fi
 
