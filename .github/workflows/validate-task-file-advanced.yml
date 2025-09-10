@@ -16,15 +16,26 @@ jobs:
         id: parse
         run: |
           echo "Parsing file name from issue body..."
-          # 使用 awk 來尋找並精準提取檔案名稱，這個方法最為可靠，
-          # 可以忽略 '文章檔案連結' 和檔案名稱之間的任何換行或空白。
-          FILE_NAME=$(echo "${{ github.event.issue.body }}" | awk '/文章檔案連結/{getline; print $0}' | xargs)
-          
+          # 這個腳本會先找到 '文章檔案連結' 的行，然後迴圈尋找下一個非空白行。
+          # 這是最穩定的解決方案，可以完美處理多餘的換行或空格。
+          FILE_NAME=$(echo "${{ github.event.issue.body }}" | awk '
+          /文章檔案連結/{
+            found_title=1;
+            next;
+          }
+          found_title && length($0) > 0 {
+            print $0;
+            exit;
+          }')
+
           # 檢查是否成功提取檔案名稱
           if [ -z "$FILE_NAME" ]; then
             echo "Error: Could not find a valid file name after '文章檔案連結'."
             exit 1
           fi
+
+          # 移除任何前後的空白字元
+          FILE_NAME=$(echo "$FILE_NAME" | xargs)
 
           echo "file_name=$FILE_NAME" >> $GITHUB_ENV
           echo "Extracted file name: $FILE_NAME"
