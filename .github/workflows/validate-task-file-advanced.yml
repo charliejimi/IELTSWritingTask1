@@ -1,0 +1,60 @@
+name: Validate Task File & Suggest Candidates
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  validate_file:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Parse file name from issue
+        id: parse
+        run: |
+          echo "Parsing task_file from issue body..."
+          FILE_NAME=$(jq -r '.issue.body | match("task_file:\\s*(.*)"); .captures[0].string' <<< "${{ toJson(github.event) }}")
+          echo "file_name=$FILE_NAME" >> $GITHUB_ENV
+
+      - name: List all txt files
+        id: listfiles
+        run: |
+          FILES=$(find . -maxdepth 1 -name "*.txt" -printf "%f\n")
+          echo "all_files=$FILES" >> $GITHUB_ENV
+          echo "Available files: $FILES"
+
+      - name: Check if file exists and suggest candidates
+        run: |
+          FOUND=false
+          for f in $FILES; do
+            if [ "$f" = "${{ env.file_name }}" ]; then
+              FOUND=true
+              break
+            fi
+          done
+
+          if [ "$FOUND" = true ]; then
+            echo "File exists."
+          else
+            echo "File not found. Suggesting candidates..."
+            gh issue comment ${{ github.event.issue.number }} --body "⚠️ 檔案 `${{ env.file_name }}` 不存在！可選檔案如下:\n$FILES"
+            exit 1
+          fi
+
+      - name: Add label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: file:${{ env.file_name }}
+
+      - name: Add link comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            ✅ 檔案已驗證存在  
+            檔案連結: [${{ env.file_name }}](https://github.com/${{ github.repository }}/blob/master/${{ env.file_name }})
