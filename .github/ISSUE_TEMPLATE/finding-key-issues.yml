@@ -14,13 +14,12 @@ body:
     validations:
       required: true
       
-- type: input
-  id: file_link
-  attributes:
-    label: "📝 文章檔案連結"
-    description: "請提供你的寫作文章檔案連結或路徑。"
-    placeholder: "例如：../blob/master/path/to/your/file.md"
-
+  - type: textarea
+    id: file_link
+    attributes:
+      label: "📝 文章檔案連結"
+      description: "請提供你的寫作文章檔案連結或路徑。"
+      placeholder: "例如：../blob/master/path/to/your/file.md"
 
   - type: input
     id: writing_date
@@ -81,7 +80,7 @@ body:
         🔹 認知保守收錄 (存入最佳範例庫或模板): 
         🔹 共識問題訓練 (指定練習任務或練習題): 
         🔹 理由偏差驗證 (你與 AI 給出不同原因但結果相似時，需比對 AI 評語或高分範文，找出真正原因): 
-   
+    
   - type: textarea
     id: additional_notes
     attributes:
