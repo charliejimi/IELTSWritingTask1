@@ -13,6 +13,13 @@ body:
       placeholder: "例如：WT1_Two_Pies"
     validations:
       required: true
+      
+ - type: textarea
+    id: file_link
+    attributes:
+      description: "文章鏈結"
+      placeholder: "[檔案路徑](../blob/master/檔名.txt)"
+
 
   - type: input
     id: writing_date
