@@ -16,9 +16,9 @@ jobs:
         id: parse
         run: |
           echo "Parsing file name from issue body..."
-          # 這個新的腳本使用 grep 尋找標題，然後用 tail 提取後方緊接著的內容。
-          # 這樣能確保不受空白行或換行符號格式的影響，更可靠地提取檔案名稱。
-          FILE_NAME=$(echo "${{ github.event.issue.body }}" | grep -A 1 '文章檔案連結' | tail -n 1 | xargs)
+          # 使用 awk 來尋找並精準提取檔案名稱，這個方法最為可靠，
+          # 可以忽略 '文章檔案連結' 和檔案名稱之間的任何換行或空白。
+          FILE_NAME=$(echo "${{ github.event.issue.body }}" | awk '/文章檔案連結/{getline; print $0}' | xargs)
           
           # 檢查是否成功提取檔案名稱
           if [ -z "$FILE_NAME" ]; then
