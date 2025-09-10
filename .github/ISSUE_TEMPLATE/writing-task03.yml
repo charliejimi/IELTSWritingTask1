@@ -1,5 +1,4 @@
 name: IELTS Writing Task 1 - AI vs Self Assessment
-about: 用於紀錄每篇 Task 1 練習的自評、AI 評分與差異判斷
 title: "[Task 1] {{title}}"
 labels: ["IELTS", "Task 1", "AI Comparison"]
 assignees: []
@@ -12,31 +11,20 @@ body:
         - 題目名稱/編號: 
         - 寫作日期: 
         - 題型: （Line / Bar / Pie / Table / Map / Process / Mixed）
-        - 時間限制: 20 分鐘
 
   - type: textarea
     id: self_assessment
     attributes:
       label: "2️⃣ 自我評估分數 (Self Assessment)"
       description: "對照 IELTS 四大核心維度，填寫自評分數 0~9"
-      placeholder: |
-        Task Response (TR): 
-        Coherence & Cohesion (CC): 
-        Lexical Resource (LR): 
-        Grammatical Range & Accuracy (GRA): 
-        其他觀察/備註: 
+      placeholder: "Task Response (TR): \nCoherence & Cohesion (CC): \nLexical Resource (LR): \nGrammatical Range & Accuracy (GRA): \n其他觀察/備註:"
 
   - type: textarea
     id: ai_assessment
     attributes:
       label: "3️⃣ AI 評分 (AI Scoring)"
       description: "將 AI 提供的分數與評語填入"
-      placeholder: |
-        Task Response (TR): 
-        Coherence & Cohesion (CC): 
-        Lexical Resource (LR): 
-        Grammatical Range & Accuracy (GRA): 
-        AI 評語: 
+      placeholder: "Task Response (TR): \nCoherence & Cohesion (CC): \nLexical Resource (LR): \nGrammatical Range & Accuracy (GRA): \nAI 評語:"
 
   - type: checkboxes
     id: difference_analysis
@@ -54,15 +42,11 @@ body:
     attributes:
       label: "5️⃣ 背脊反思與行動 (Reflection & Action)"
       description: "針對每個差異類型，列出具體修正行動（重寫段落 / 收錄最佳範例 / micro drills / 驗證 AI 理由）"
-      placeholder: |
-        - 自我盲點修正: 
-        - 認知保守收錄: 
-        - 共識問題訓練: 
-        - 理由偏差驗證: 
+      placeholder: "自我盲點修正: \n認知保守收錄: \n共識問題訓練: \n理由偏差驗證:"
 
   - type: textarea
     id: additional_notes
     attributes:
       label: "6️⃣ 其他備註 (Optional Notes)"
       description: "可記錄寫作過程中的心得、詞彙卡片或額外觀察"
-      placeholder: ""
+      placeholder: "請填寫備註或心得"
