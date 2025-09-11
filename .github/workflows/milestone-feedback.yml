@@ -1,0 +1,56 @@
+name: Milestone AI Feedback
+
+on:
+  pull_request:
+    types: [closed]
+  
+jobs:
+  milestone-feedback:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.milestone != null && github.event.pull_request.milestone.state == 'closed'
+    
+    permissions:
+      issues: write
+      contents: write
+
+    steps:
+      - name: Generate AI Feedback
+        id: ai_feedback
+        run: |
+          feedback=$(curl -s -X POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${{ secrets.GEMINI_API_KEY }} \
+            -H "Content-Type: application/json" \
+            -d '{
+              "systemInstruction": {
+                "parts": [
+                  {
+                    "text": "你是一位專業的專案經理與教練。請針對剛完成的專案或任務，給予簡潔、精準且具體的正向回饋，並提出一到兩點明確的改進方向，格式要清晰易讀。"
+                  }
+                ]
+              },
+              "contents": [
+                {
+                  "role": "user",
+                  "parts": [
+                    {
+                      "text": "我們剛完成一個里程碑，請幫忙生成回饋。"
+                    }
+                  ]
+                }
+              ]
+            }' | jq -r '.candidates[0].content.parts[0].text')
+          
+          # 將回饋內容輸出為步驟的 output
+          echo "feedback<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$feedback" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+      
+      - name: Post AI feedback to the milestone
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.milestone.number }}
+          body: |
+            ---
+            # 🎉 Milestone 完成！AI 專案教練回饋：
+            ${{ steps.ai_feedback.outputs.feedback }}
+            ---
