@@ -64,7 +64,7 @@ jobs:
 
           # 發送請求到 Gemini API 並解析回覆
           # 將 curl 和 jq 的命令串在一起，直接取得結果
-          feedback=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}" \
+          feedback=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}" \
             -H "Content-Type: application/json" \
             -d "$JSON_PAYLOAD" | jq -r '.candidates[0].content.parts[0].text')
           
