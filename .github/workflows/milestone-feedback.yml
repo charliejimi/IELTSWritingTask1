@@ -7,7 +7,7 @@ on:
 jobs:
   milestone-feedback:
     runs-on: ubuntu-latest
-    if: github.event.issue.milestone != null && github.event.issue.milestone.state == 'closed'
+    # 移除條件判斷，確保每次 Issue 關閉都觸發
     
     permissions:
       issues: write
