@@ -1,56 +1,64 @@
-name: Milestone AI Feedback
+name: IELTS AI Feedback
 
 on:
-  issues:
-    types: [closed]
+issues:
+types: [closed]
 
 jobs:
-  milestone-feedback:
-    runs-on: ubuntu-latest
-    # 移除條件判斷，確保每次 Issue 關閉都觸發
-    
-    permissions:
-      issues: write
-      contents: write
+milestone-feedback:
+runs-on: ubuntu-latest
+permissions:
+issues: write
 
-    steps:
-      - name: Generate AI Feedback
-        id: ai_feedback
-        run: |
-          feedback=$(curl -s -X POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${{ secrets.GEMINI_API_KEY }} \
-            -H "Content-Type: application/json" \
-            -d '{
-              "systemInstruction": {
-                "parts": [
-                  {
-                    "text": "你是一位專業的專案經理與教練。請針對剛完成的專案或任務，給予簡潔、精準且具體的正向回饋，並提出一到兩點明確的改進方向，格式要清晰易讀。"
-                  }
-                ]
-              },
-              "contents": [
+steps:
+  - name: Generate AI Feedback
+    id: ai_feedback
+    env:
+      ISSUE_BODY: ${{ github.event.issue.body }}
+    run: |
+      # 讀取整個 Issue 內容，並將其作為 Prompt 的一部分傳送給 AI
+      # 這樣 AI 才能根據你的自評和分析，提供更精準的回饋
+      PROMPT_TEXT="我們剛完成一個雅思寫作任務，請根據以下資訊給予回饋。請你扮演一位資深雅思教練，針對文章的寫作努力程度、自評與 AI 評分的差異，給予簡潔、精準且具體的正向回饋，並提出一到兩點明確的改進方向，格式要清晰易讀。
+      \n---\n
+      以下是 Issue 內容：\n
+      ${{ env.ISSUE_BODY }}
+      \n---\n"
+      
+      feedback=$(curl -s -X POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${{ secrets.GEMINI_API_KEY }} \
+        -H "Content-Type: application/json" \
+        -d '{
+          "systemInstruction": {
+            "parts": [
+              {
+                "text": "你是一位專業的雅思教練。請針對剛完成的雅思寫作任務，給予簡潔、精準且具體的正向回饋，並提出一到兩點明確的改進方向，格式要清晰易讀。"
+              }
+            ]
+          },
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
                 {
-                  "role": "user",
-                  "parts": [
-                    {
-                      "text": "我們剛完成一個里程碑，請幫忙生成回饋。"
-                    }
-                  ]
+                  "text": "'"$PROMPT_TEXT"'"
                 }
               ]
-            }' | jq -r '.candidates[0].content.parts[0].text')
-          
-          # 將回饋內容輸出為步驟的 output
-          echo "feedback<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$feedback" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+            }
+          ]
+        }' | jq -r '.candidates[0].content.parts[0].text')
       
-      - name: Post AI feedback to the milestone
-        uses: peter-evans/create-or-update-comment@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.issue.number }}
-          body: |
-            ---
-            # 🎉 Milestone 完成！AI 專案教練回饋：
-            ${{ steps.ai_feedback.outputs.feedback }}
-            ---
+      # 將回饋內容輸出為步驟的 output
+      echo "feedback<<EOF" >> "$GITHUB_OUTPUT"
+      echo "$feedback" >> "$GITHUB_OUTPUT"
+      echo "EOF" >> "$GITHUB_OUTPUT"
+
+  - name: Post AI feedback to the issue
+    uses: peter-evans/create-or-update-comment@v4
+    with:
+      token: ${{ secrets.GITHUB_TOKEN }}
+      issue-number: ${{ github.event.issue.number }}
+      body: |
+        ---
+        ### 🎉 任務完成！AI 專案教練回饋：
+        
+        ${{ steps.ai_feedback.outputs.feedback }}
+        ---
