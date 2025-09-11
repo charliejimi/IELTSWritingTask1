@@ -1,13 +1,13 @@
 name: Milestone AI Feedback
 
 on:
-  pull_request:
+  issues:
     types: [closed]
-  
+
 jobs:
   milestone-feedback:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.milestone != null && github.event.pull_request.milestone.state == 'closed'
+    if: github.event.issue.milestone != null && github.event.issue.milestone.state == 'closed'
     
     permissions:
       issues: write
@@ -48,7 +48,7 @@ jobs:
         uses: peter-evans/create-or-update-comment@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.pull_request.milestone.number }}
+          issue-number: ${{ github.event.issue.number }}
           body: |
             ---
             # 🎉 Milestone 完成！AI 專案教練回饋：
