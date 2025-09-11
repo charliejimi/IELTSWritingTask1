@@ -1,4 +1,16 @@
-name: IELTS AI Feedbackon:issues:types: [closed]jobs:milestone-feedback:runs-on: ubuntu-latestpermissions:issues: writesteps:
+name: IELTS AI Feedback
+
+on:
+issues:
+types: [closed]
+
+jobs:
+milestone-feedback:
+runs-on: ubuntu-latest
+permissions:
+issues: write
+
+steps:
   - name: Generate AI Feedback
     id: ai_feedback
     env:
