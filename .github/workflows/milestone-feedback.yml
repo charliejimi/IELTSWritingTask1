@@ -1,16 +1,4 @@
-name: IELTS AI Feedback
-
-on:
-issues:
-types: [closed]
-
-jobs:
-milestone-feedback:
-runs-on: ubuntu-latest
-permissions:
-issues: write
-
-steps:
+name: IELTS AI Feedbackon:issues:types: [closed]jobs:milestone-feedback:runs-on: ubuntu-latestpermissions:issues: writesteps:
   - name: Generate AI Feedback
     id: ai_feedback
     env:
@@ -18,33 +6,32 @@ steps:
     run: |
       # 讀取整個 Issue 內容，並將其作為 Prompt 的一部分傳送給 AI
       # 這樣 AI 才能根據你的自評和分析，提供更精準的回饋
-      PROMPT_TEXT="我們剛完成一個雅思寫作任務，請根據以下資訊給予回饋。請你扮演一位資深雅思教練，針對文章的寫作努力程度、自評與 AI 評分的差異，給予簡潔、精準且具體的正向回饋，並提出一到兩點明確的改進方向，格式要清晰易讀。
-      \n---\n
-      以下是 Issue 內容：\n
-      ${{ env.ISSUE_BODY }}
-      \n---\n"
+      PROMPT_TEXT=$(echo "我們剛完成一個雅思寫作任務，請根據以下資訊給予回饋。請你扮演一位資深雅思教練，針對文章的寫作努力程度、自評與 AI 評分的差異，給予簡潔、精準且具體的正向回饋，並提出一到兩點明確的改進方向，格式要清晰易讀。\n\n---\n\n以下是 Issue 內容：\n\n${{ env.ISSUE_BODY }}\n\n---")
       
-      feedback=$(curl -s -X POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${{ secrets.GEMINI_API_KEY }} \
-        -H "Content-Type: application/json" \
-        -d '{
-          "systemInstruction": {
-            "parts": [
-              {
-                "text": "你是一位專業的雅思教練。請針對剛完成的雅思寫作任務，給予簡潔、精準且具體的正向回饋，並提出一到兩點明確的改進方向，格式要清晰易讀。"
-              }
-            ]
-          },
-          "contents": [
+      # 使用printf來處理換行符，避免JSON格式錯誤
+      JSON_PAYLOAD=$(printf '{
+        "systemInstruction": {
+          "parts": [
             {
-              "role": "user",
-              "parts": [
-                {
-                  "text": "'"$PROMPT_TEXT"'"
-                }
-              ]
+              "text": "你是一位專業的雅思教練。請針對剛完成的雅思寫作任務，給予簡潔、精準且具體的正向回饋，並提出一到兩點明確的改進方向，格式要清晰易讀。"
             }
           ]
-        }' | jq -r '.candidates[0].content.parts[0].text')
+        },
+        "contents": [
+          {
+            "role": "user",
+            "parts": [
+              {
+                "text": "%s"
+              }
+            ]
+          }
+        ]
+      }' "$PROMPT_TEXT")
+
+      feedback=$(curl -s -X POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${{ secrets.GEMINI_API_KEY }} \
+        -H "Content-Type: application/json" \
+        -d "$JSON_PAYLOAD" | jq -r '.candidates[0].content.parts[0].text')
       
       # 將回饋內容輸出為步驟的 output
       echo "feedback<<EOF" >> "$GITHUB_OUTPUT"
