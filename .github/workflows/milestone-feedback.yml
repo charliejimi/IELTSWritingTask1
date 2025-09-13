@@ -24,64 +24,56 @@ jobs:
           ISSUE_BODY: ${{ github.event.issue.body }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          # 印出執行的每一行指令
           set -x
           
           # 從 ISSUE_BODY 中提取所有圖片 URL
-          # 使用 grep 和 Perl 正規表達式來精準匹配 src 屬性中的 URL
-          IMAGE_URLS=$(echo "$ISSUE_BODY" | grep -oP '<img\s+[^>]*?src="\K[^"]*')
+          # 處理兩種來源：一般 URL 和 Base64 編碼的資料
+          IMAGE_DATA_PARTS=""
           
-          echo "---[DETECTED IMAGE URLS]---"
-          echo "$IMAGE_URLS"
-          echo "---[END DETECTED IMAGE URLS]---"
+          # 1. 提取所有 Base64 圖片數據
+          BASE64_PATTERNS=$(echo "$ISSUE_BODY" | grep -oP 'data:image/[^;]*;base64,[^"]*')
+          if [ -n "$BASE64_PATTERNS" ]; then
+            while IFS= read -r line; do
+              # 提取 MIME 類型和數據
+              MIME_TYPE=$(echo "$line" | cut -d';' -f1 | sed 's/data://')
+              BASE64_DATA=$(echo "$line" | cut -d',' -f2)
+              
+              if [ -n "$BASE64_DATA" ]; then
+                IMAGE_PART=$(jq -n --arg mime "$MIME_TYPE" --arg data "$BASE64_DATA" '{"inlineData": {"mimeType": $mime, "data": $data}}')
+                IMAGE_DATA_PARTS=$(echo "$IMAGE_DATA_PARTS" | jq '. + ['"$IMAGE_PART"']')
+              fi
+            done <<< "$BASE64_PATTERNS"
+          fi
           
-          # 將文字部分從 ISSUE_BODY 中分離出來，用於傳送給 AI
-          PROMPT_TEXT=$(echo "$ISSUE_BODY" | sed -r 's/<img[^>]*>//g' | sed -r 's/^[[:space:]]*//' | sed '/^$/d')
+          # 2. 如果沒有 Base64 圖片，則嘗試從 URL 下載
+          if [ -z "$IMAGE_DATA_PARTS" ]; then
+            IMAGE_URLS=$(echo "$ISSUE_BODY" | grep -oP '<img\s+[^>]*?src="\K[^"]*')
+            if [ -n "$IMAGE_URLS" ]; then
+              for URL in $IMAGE_URLS; do
+                echo "Downloading image from: $URL"
+                BASE64_DATA=$(curl -s -L "$URL" | base64 -w 0)
+                
+                if [ -n "$BASE64_DATA" ]; then
+                  IMAGE_PART=$(jq -n --arg data "$BASE64_DATA" '{"inlineData": {"mimeType": "image/jpeg", "data": $data}}')
+                  IMAGE_DATA_PARTS=$(echo "$IMAGE_DATA_PARTS" | jq '. + ['"$IMAGE_PART"']')
+                else
+                  echo "Failed to download or encode image from: $URL. Skipping."
+                fi
+              done
+            fi
+          fi
           
           # 建立一個陣列來儲存 API 請求的內容部分
           PARTS_ARRAY="[]"
           
           # 將處理後的文字作為第一部分加入陣列
+          PROMPT_TEXT=$(echo "$ISSUE_BODY" | sed -r 's/data:image[^)]*\)//g' | sed -r 's/<img[^>]*>//g' | sed -r 's/^[[:space:]]*//' | sed '/^$/d')
           PARTS_ARRAY=$(echo "$PARTS_ARRAY" | jq --arg text "$PROMPT_TEXT" '. + [{"text": $text}]')
           
-          # 檢查是否有圖片 URL，並逐一下載和編碼
-          if [ -n "$IMAGE_URLS" ]; then
-            for URL in $IMAGE_URLS; do
-              echo "Downloading image from: $URL"
-              # 下載圖片到臨時檔案，並跟隨重定向
-              TEMP_IMAGE_FILE=$(mktemp)
-              curl -s -L -o "$TEMP_IMAGE_FILE" "$URL"
-              
-              # 【修正】檢查下載的檔案大小
-              # 如果檔案太小（小於100位元組），很可能不是圖片，而是錯誤訊息，我們就跳過它
-              FILE_SIZE=$(stat -c%s "$TEMP_IMAGE_FILE")
-              
-              if [ "$FILE_SIZE" -gt 100 ]; then
-                echo "File size is ${FILE_SIZE} bytes. Proceeding with encoding."
-                # 編碼臨時檔案的內容
-                BASE64_DATA=$(base64 -w 0 "$TEMP_IMAGE_FILE")
-                
-                if [ -n "$BASE64_DATA" ]; then
-                  # 建立圖片部分的 JSON 物件
-                  IMAGE_PART=$(jq -n --arg data "$BASE64_DATA" '{"inlineData": {"mimeType": "image/jpeg", "data": $data}}')
-                  
-                  # 將圖片部分加入陣列
-                  PARTS_ARRAY=$(echo "$PARTS_ARRAY" | jq '. + ['"$IMAGE_PART"']')
-                  
-                else
-                  echo "Failed to encode image from: $URL"
-                fi
-              else
-                echo "Downloaded file from $URL is too small (${FILE_SIZE} bytes), likely an error. Skipping."
-              fi
-              
-              # 清理臨時檔案
-              rm "$TEMP_IMAGE_FILE"
-            done
-          fi
+          # 將圖片部分加入陣列
+          PARTS_ARRAY=$(echo "$PARTS_ARRAY" | jq --argjson images "$IMAGE_DATA_PARTS" '. + $images')
           
           # 建立完整的 JSON payload
-          # 【最終修正】將 parts 陣列正確地巢狀到 contents 陣列中
           JSON_PAYLOAD=$(jq -n \
             --argjson parts "$PARTS_ARRAY" \
             '{
@@ -103,7 +95,6 @@ jobs:
           echo "$JSON_PAYLOAD"
           echo "---[END JSON PAYLOAD]---"
 
-          # 更新模型名稱為 gemini-2.5-flash-preview-05-20 以支援圖片分析
           API_RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}" \
             -H "Content-Type: application/json" \
             -d "$JSON_PAYLOAD" \
