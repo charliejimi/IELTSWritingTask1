@@ -2,7 +2,6 @@
 name: IELTS AI Feedback
 
 # 觸發條件：當 issue 被關閉時執行
-# 修正了 'on' 觸發器的縮排語法
 on:
   issues:
     types: [closed]
@@ -28,79 +27,87 @@ jobs:
           # 印出執行的每一行指令
           set -x
           
-          # 準備 prompt 文字
-          # 使用 here-document 語法 (cat <<'EOF') 讓多行文字處理更簡單清晰
-          PROMPT_TEXT=$(cat <<EOF
-          我們剛完成一個雅思寫作任務，請根據以下資訊給予回饋。請你扮演一位資深雅思教練，針對文章的寫作努力程度、自評與 AI 評分的差異，給予簡潔、精準且具體的正向回饋，並提出一到兩點明確的改進方向，格式要清晰易讀。
-
-          ---
-
-          以下是 Issue 內容：
-
-          ${ISSUE_BODY}
-
-          ---
-          EOF
-          )
+          # 從 ISSUE_BODY 中提取所有圖片 URL
+          # 使用 grep 和 Perl 正規表達式來精準匹配 src 屬性中的 URL
+          IMAGE_URLS=$(echo "$ISSUE_BODY" | grep -oP '<img\s+[^>]*?src="\K[^"]*')
           
-          # 印出 prompt 變數的內容，確認 issue body 有被正確代入
-          echo "---[PROMPT TEXT]---"
-          echo "$PROMPT_TEXT"
-          echo "---[END PROMPT TEXT]---"
+          echo "---[DETECTED IMAGE URLS]---"
+          echo "$IMAGE_URLS"
+          echo "---[END DETECTED IMAGE URLS]---"
           
-          # 【優化】使用 jq 來建立 JSON payload，這樣最安全，能自動處理所有特殊字元
+          # 將文字部分從 ISSUE_BODY 中分離出來，用於傳送給 AI
+          PROMPT_TEXT=$(echo "$ISSUE_BODY" | sed -r 's/<img[^>]*>//g' | sed -r 's/^[[:space:]]*//' | sed '/^$/d')
+          
+          # 建立一個陣列來儲存 API 請求的內容部分
+          PARTS_ARRAY="[]"
+          
+          # 將處理後的文字作為第一部分加入陣列
+          PARTS_ARRAY=$(echo "$PARTS_ARRAY" | jq --arg text "$PROMPT_TEXT" '. + [{"text": $text}]')
+          
+          # 檢查是否有圖片 URL，並逐一下載和編碼
+          if [ -n "$IMAGE_URLS" ]; then
+            for URL in $IMAGE_URLS; do
+              echo "Downloading image from: $URL"
+              # 使用 curl 下載圖片並用 base64 編碼，-L 允許跟隨重定向，-s 靜音，-w 0 不換行
+              BASE64_DATA=$(curl -s -L "$URL" | base64 -w 0)
+              
+              if [ -n "$BASE64_DATA" ]; then
+                # 建立圖片部分的 JSON 物件
+                IMAGE_PART=$(jq -n --arg data "$BASE64_DATA" '{"inlineData": {"mimeType": "image/jpeg", "data": $data}}')
+                
+                # 將圖片部分加入陣列
+                PARTS_ARRAY=$(echo "$PARTS_ARRAY" | jq '. + ['"$IMAGE_PART"']')
+                
+              else
+                echo "Failed to download or encode image: $URL"
+              fi
+            done
+          fi
+          
+          # 建立完整的 JSON payload
+          # contents 的值為我們剛剛建立的 parts 陣列
           JSON_PAYLOAD=$(jq -n \
-            --arg prompt_text "$ISSUE_BODY" \
+            --argjson parts "$PARTS_ARRAY" \
             '{
               "systemInstruction": {
                 "parts": [
                   {
-                    "text": "你是一位專業的雅思教練。請針對剛上傳的圖片寫一段190字的Essay。"
+                    "text": "你是一位專業的雅思教練。請針對剛完成的雅思寫作任務，參考圖片內容，給予簡潔、精準且具體的正向回饋，並提出一到兩點明確的改進方向，格式要清晰易讀。"
                   }
                 ]
               },
-              "contents": [
-                {
-                  "role": "user",
-                  "parts": [
-                    {
-                      "text": $prompt_text
-                    }
-                  ]
-                }
-              ]
-            }') 
+              "contents": $parts
+            }')
           
           echo "---[JSON PAYLOAD]---"
           echo "$JSON_PAYLOAD"
           echo "---[END JSON PAYLOAD]---"
 
-          # 【修正】1. 更新模型名稱為 gemini-1.5-flash-latest
-          # 【修正】2. 先儲存完整的 API 回應，方便除錯
-          API_RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}" \
+          # 更新模型名稱為 gemini-2.5-flash-preview-05-20 以支援圖片分析
+          API_RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}" \
             -H "Content-Type: application/json" \
-            -d "$JSON_PAYLOAD")
+            -d "$JSON_PAYLOAD" \
+            -w "\n%{http_code}")
+            
+          HTTP_CODE=$(echo "$API_RESPONSE" | tail -n1)
+          API_RESPONSE=$(echo "$API_RESPONSE" | head -n -1)
 
           echo "---[FULL API RESPONSE]---"
           echo "$API_RESPONSE"
           echo "---[END FULL API RESPONSE]---"
+          echo "HTTP Status Code: $HTTP_CODE"
 
-          # 從完整的 API 回應中解析出需要的文字
           feedback=$(echo "$API_RESPONSE" | jq -r '.candidates[0].content.parts[0].text')
+          
+          if [ "$HTTP_CODE" -ne 200 ] || [ -z "$feedback" ] || [ "$feedback" = "null" ]; then
+            echo "從 API 獲取回饋失敗，HTTP Status Code: $HTTP_CODE"
+            feedback="抱歉，AI 教練目前無法提供回饋，請稍後再試。請檢查你的 API 金鑰或網路連線。"
+          fi
 
           echo "---[PARSED FEEDBACK]---"
           echo "$feedback"
           echo "---[END PARSED FEEDBACK]---"
 
-          
-          # 增加一個簡單的錯誤處理，如果 API 沒有回傳內容，就提供一個預設訊息
-          if [ -z "$feedback" ] || [ "$feedback" = "null" ]; then
-            echo "從 API 獲取回饋失敗。"
-            feedback="抱歉，AI 教練目前無法提供回饋，請稍後再試。"
-          fi
-
-          # 將多行回饋內容寫入 GITHUB_OUTPUT
-          # 這是官方推薦處理多行輸出的方式
           echo "feedback<<EOF" >> "$GITHUB_OUTPUT"
           echo "$feedback" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
@@ -109,7 +116,6 @@ jobs:
       - name: Post AI feedback to the issue
         uses: peter-evans/create-or-update-comment@v4
         with:
-          # 這個 token 是由 GitHub Actions 自動提供的，不需要額外設定 secret
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.issue.number }}
           body: |
