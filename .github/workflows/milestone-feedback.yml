@@ -48,24 +48,40 @@ jobs:
           if [ -n "$IMAGE_URLS" ]; then
             for URL in $IMAGE_URLS; do
               echo "Downloading image from: $URL"
-              # 使用 curl 下載圖片並用 base64 編碼，-L 允許跟隨重定向，-s 靜音，-w 0 不換行
-              BASE64_DATA=$(curl -s -L "$URL" | base64 -w 0)
+              # 下載圖片到臨時檔案，並跟隨重定向
+              TEMP_IMAGE_FILE=$(mktemp)
+              curl -s -L -o "$TEMP_IMAGE_FILE" "$URL"
               
-              if [ -n "$BASE64_DATA" ]; then
-                # 建立圖片部分的 JSON 物件
-                IMAGE_PART=$(jq -n --arg data "$BASE64_DATA" '{"inlineData": {"mimeType": "image/jpeg", "data": $data}}')
+              # 【修正】檢查下載的檔案大小
+              # 如果檔案太小（小於100位元組），很可能不是圖片，而是錯誤訊息，我們就跳過它
+              FILE_SIZE=$(stat -c%s "$TEMP_IMAGE_FILE")
+              
+              if [ "$FILE_SIZE" -gt 100 ]; then
+                echo "File size is ${FILE_SIZE} bytes. Proceeding with encoding."
+                # 編碼臨時檔案的內容
+                BASE64_DATA=$(base64 -w 0 "$TEMP_IMAGE_FILE")
                 
-                # 將圖片部分加入陣列
-                PARTS_ARRAY=$(echo "$PARTS_ARRAY" | jq '. + ['"$IMAGE_PART"']')
-                
+                if [ -n "$BASE64_DATA" ]; then
+                  # 建立圖片部分的 JSON 物件
+                  IMAGE_PART=$(jq -n --arg data "$BASE64_DATA" '{"inlineData": {"mimeType": "image/jpeg", "data": $data}}')
+                  
+                  # 將圖片部分加入陣列
+                  PARTS_ARRAY=$(echo "$PARTS_ARRAY" | jq '. + ['"$IMAGE_PART"']')
+                  
+                else
+                  echo "Failed to encode image from: $URL"
+                fi
               else
-                echo "Failed to download or encode image: $URL"
+                echo "Downloaded file from $URL is too small (${FILE_SIZE} bytes), likely an error. Skipping."
               fi
+              
+              # 清理臨時檔案
+              rm "$TEMP_IMAGE_FILE"
             done
           fi
           
           # 建立完整的 JSON payload
-          # contents 的值為我們剛剛建立的 parts 陣列
+          # 【最終修正】將 parts 陣列正確地巢狀到 contents 陣列中
           JSON_PAYLOAD=$(jq -n \
             --argjson parts "$PARTS_ARRAY" \
             '{
@@ -76,7 +92,11 @@ jobs:
                   }
                 ]
               },
-              "contents": $parts
+              "contents": [
+                {
+                  "parts": $parts
+                }
+              ]
             }')
           
           echo "---[JSON PAYLOAD]---"
