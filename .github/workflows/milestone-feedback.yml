@@ -47,49 +47,50 @@ jobs:
           echo "---[PROMPT TEXT]---"
           echo "$PROMPT_TEXT"
           echo "---[END PROMPT TEXT]---"
-
-          # 使用 printf 準備 JSON payload，並將 prompt 注入
-          # 這樣可以避免因 prompt 內容中的特殊字元導致 JSON 格式錯誤
-          JSON_PAYLOAD=$(printf '{
-            "systemInstruction": {
-              "parts": [
-                {
-                  "text": "你是一位專業的雅思教練。請針對剛完成的雅思寫作任務，給予簡潔、精準且具體的正向回饋，並提出一到兩點明確的改進方向，格式要清晰易讀。"
-                }
-              ]
-            },
-            "contents": [
-              {
-                "role": "user",
+          
+          # 【優化】使用 jq 來建立 JSON payload，這樣最安全，能自動處理所有特殊字元
+          JSON_PAYLOAD=$(jq -n \
+            --arg prompt_text "$ISSUE_BODY" \
+            '{
+              "systemInstruction": {
                 "parts": [
                   {
-                    "text": "%s"
+                    "text": "你是一位專業的雅思教練。請針對剛完成的雅思寫作任務，給予簡潔、精準且具體的正向回饋，並提出一到兩點明確的改進方向，格式要清晰易讀。"
                   }
                 ]
-              }
-            ]
-          }' "$PROMPT_TEXT")
+              },
+              "contents": [
+                {
+                  "role": "user",
+                  "parts": [
+                    {
+                      "text": $prompt_text
+                    }
+                  ]
+                }
+              ]
+            }') 
           
-          # 印出準備要發送的 JSON payload，檢查格式是否正確
           echo "---[JSON PAYLOAD]---"
           echo "$JSON_PAYLOAD"
           echo "---[END JSON PAYLOAD]---"
-          
-          # 檢查Gemini API Key
-          echo "---[Gemini API Key]---"
-          echo "$GEMINI_API_KEY"
-          echo "---[Gemini API Key]---"
 
-          # 發送請求到 Gemini API 並解析回覆
-          # 將 curl 和 jq 的命令串在一起，直接取得結果
-          feedback=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}" \
+          # 【修正】1. 更新模型名稱為 gemini-1.5-flash-latest
+          # 【修正】2. 先儲存完整的 API 回應，方便除錯
+          API_RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}" \
             -H "Content-Type: application/json" \
-            -d "$JSON_PAYLOAD" | jq -r '.candidates[0].content.parts[0].text')
-            
-          # 印出從 API 收到的原始 feedback
-          echo "---[API FEEDBACK]---"
+            -d "$JSON_PAYLOAD")
+
+          echo "---[FULL API RESPONSE]---"
+          echo "$API_RESPONSE"
+          echo "---[END FULL API RESPONSE]---"
+
+          # 從完整的 API 回應中解析出需要的文字
+          feedback=$(echo "$API_RESPONSE" | jq -r '.candidates[0].content.parts[0].text')
+
+          echo "---[PARSED FEEDBACK]---"
           echo "$feedback"
-          echo "---[END API FEEDBACK]---"
+          echo "---[END PARSED FEEDBACK]---"
 
           
           # 增加一個簡單的錯誤處理，如果 API 沒有回傳內容，就提供一個預設訊息
