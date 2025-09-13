@@ -1,110 +1,129 @@
-# 第一步：整合 Issue 內容與留言，並產生 AI 回饋
-- name: Generate AI Feedback
-  id: ai_feedback
-  env:
-    # 將 issue body 和 API key 作為環境變數傳入
-    ISSUE_BODY: ${{ github.event.issue.body }}
-    GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-    # 傳入 GITHUB_TOKEN 以便讀取 issue 留言
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  run: |
-    # 印出執行的每一行指令，方便除錯
-    set -x
+# 工作流程名稱
+name: IELTS AI Feedback
 
-    # --- [新增] 步驟 1: 透過 GitHub API 抓取這個 issue 的所有留言 ---
-    # 使用 curl 呼叫 GitHub API 的 comments endpoint
-    # -s: silent 模式
-    # -H: 帶上必要的 header，包含驗證用的 GITHUB_TOKEN
-    COMMENTS_JSON=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-      -H "Accept: application/vnd.github.v3+json" \
-      "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments")
+# 觸發條件：當 issue 被關閉時執行
+# 修正了 'on' 觸發器的縮排語法
+on:
+  issues:
+    types: [closed]
 
-    # --- [新增] 步驟 2: 使用 jq 將抓回來的留言 JSON 格式化為易讀的文字 ---
-    # map(...) | join(...) : 遍歷每一則留言，轉換成指定格式，最後用分隔線串接起來
-    # -r: 輸出原始文字 (raw output)，而非帶有引號的 JSON 字串
-    FORMATTED_COMMENTS=$(echo "$COMMENTS_JSON" | jq -r 'map("### 留言者: \(.user.login)\n\n\(.body)") | join("\n\n---\n\n")')
+# 定義工作
+jobs:
+  milestone-feedback:
+    # 運行的虛擬機環境
+    runs-on: ubuntu-latest
+    # 設定權限，允許 action 讀取 issue 內容並寫入留言
+    permissions:
+      issues: write
 
-    # --- [新增] 步驟 3: 組合原始 Issue 內文和所有留言，建立完整的對話上下文 ---
-    # 將原始文章和格式化後的留言串接在一起
-    FULL_CONTEXT=$(cat <<EOF
-    ## 雅思寫作原文
+    steps:
+     # 第一步：整合 Issue 內容與留言，並產生 AI 回饋
+      - name: Generate AI Feedback
+        id: ai_feedback
+        env:
+          # 將 issue body 和 API key 作為環境變數傳入
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # 傳入 GITHUB_TOKEN 以便讀取 issue 留言
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 印出執行的每一行指令，方便除錯
+          set -x
 
-    ${ISSUE_BODY}
+          # --- [新增] 步驟 1: 透過 GitHub API 抓取這個 issue 的所有留言 ---
+          # 使用 curl 呼叫 GitHub API 的 comments endpoint
+          # -s: silent 模式
+          # -H: 帶上必要的 header，包含驗證用的 GITHUB_TOKEN
+          COMMENTS_JSON=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments")
 
-    ---
+          # --- [新增] 步驟 2: 使用 jq 將抓回來的留言 JSON 格式化為易讀的文字 ---
+          # map(...) | join(...) : 遍歷每一則留言，轉換成指定格式，最後用分隔線串接起來
+          # -r: 輸出原始文字 (raw output)，而非帶有引號的 JSON 字串
+          FORMATTED_COMMENTS=$(echo "$COMMENTS_JSON" | jq -r 'map("### 留言者: \(.user.login)\n\n\(.body)") | join("\n\n---\n\n")')
 
-    ## 歷史對話與留言
+          # --- [新增] 步驟 3: 組合原始 Issue 內文和所有留言，建立完整的對話上下文 ---
+          # 將原始文章和格式化後的留言串接在一起
+          FULL_CONTEXT=$(cat <<EOF
+          ## 雅思寫作原文
 
-    ${FORMATTED_COMMENTS}
-    EOF
-    )
+          ${ISSUE_BODY}
 
-    echo "---[FULL CONTEXT]---"
-    echo "$FULL_CONTEXT"
-    echo "---[END FULL CONTEXT]---"
+          ---
 
-    # --- [修改] 步驟 4: 準備 Prompt，告訴 AI 它的任務是基於完整上下文來回饋 ---
-    # 我們稍微修改了 prompt，讓 AI 知道它正在看一段完整的對話紀錄
-    PROMPT_TEXT=$(cat <<EOF
-    你是一位專業的雅思教練。請根據以下提供的「雅思寫作原文」以及「歷史對話與留言」的完整上下文，針對最新的提問或文章的整體表現，給予簡潔、精準且具體的正向回饋，並提出一到兩點明確的改進方向。請讓你的回饋像是在延續這段對話。
+          ## 歷史對話與留言
 
-    ---
+          ${FORMATTED_COMMENTS}
+          EOF
+          )
 
-    以下是完整的上下文：
+          echo "---[FULL CONTEXT]---"
+          echo "$FULL_CONTEXT"
+          echo "---[END FULL CONTEXT]---"
 
-    ${FULL_CONTEXT}
+          # --- [修改] 步驟 4: 準備 Prompt，告訴 AI 它的任務是基於完整上下文來回饋 ---
+          # 我們稍微修改了 prompt，讓 AI 知道它正在看一段完整的對話紀錄
+          PROMPT_TEXT=$(cat <<EOF
+          你是一位專業的雅思教練。請根據以下提供的「雅思寫作原文」以及「歷史對話與留言」的完整上下文，針對最新的提問或文章的整體表現，給予簡潔、精準且具體的正向回饋，並提出一到兩點明確的改進方向。請讓你的回饋像是在延續這段對話。
 
-    ---
-    EOF
-    )
-    
-    # --- [修改] 步驟 5: 使用 jq 建立 JSON payload，傳入的是 FULL_CONTEXT ---
-    JSON_PAYLOAD=$(jq -n \
-      --arg prompt_text "$FULL_CONTEXT" \
-      '{
-        "systemInstruction": {
-          "parts": [
-            {
-              "text": "你是一位專業的雅思教練。請根據剛完成的雅思寫作任務以及歷史對話，給予簡潔、精準且具體的正向回饋，並提出一到兩點明確的改進方向，格式要清晰易讀，並且要像在延續對話一樣。"
-            }
-          ]
-        },
-        "contents": [
-          {
-            "role": "user",
-            "parts": [
-              {
-                "text": $prompt_text
-              }
-            ]
-          }
-        ]
-      }')
-    
-    echo "---[JSON PAYLOAD]---"
-    echo "$JSON_PAYLOAD"
-    echo "---[END JSON PAYLOAD]---"
+          ---
 
-    # 呼叫 API 的部分維持不變
-    API_RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}" \
-      -H "Content-Type: application/json" \
-      -d "$JSON_PAYLOAD")
+          以下是完整的上下文：
 
-    echo "---[FULL API RESPONSE]---"
-    echo "$API_RESPONSE"
-    echo "---[END FULL API RESPONSE]---"
+          ${FULL_CONTEXT}
 
-    feedback=$(echo "$API_RESPONSE" | jq -r '.candidates[0].content.parts[0].text')
+          ---
+          EOF
+          )
+          
+          # --- [修改] 步驟 5: 使用 jq 建立 JSON payload，傳入的是 FULL_CONTEXT ---
+          JSON_PAYLOAD=$(jq -n \
+            --arg prompt_text "$FULL_CONTEXT" \
+            '{
+              "systemInstruction": {
+                "parts": [
+                  {
+                    "text": "你是一位專業的雅思教練。請根據剛完成的雅思寫作任務以及歷史對話，給予簡潔、精準且具體的正向回饋，並提出一到兩點明確的改進方向，格式要清晰易讀，並且要像在延續對話一樣。"
+                  }
+                ]
+              },
+              "contents": [
+                {
+                  "role": "user",
+                  "parts": [
+                    {
+                      "text": $prompt_text
+                    }
+                  ]
+                }
+              ]
+            }')
+          
+          echo "---[JSON PAYLOAD]---"
+          echo "$JSON_PAYLOAD"
+          echo "---[END JSON PAYLOAD]---"
 
-    echo "---[PARSED FEEDBACK]---"
-    echo "$feedback"
-    echo "---[END PARSED FEEDBACK]---"
-    
-    if [ -z "$feedback" ] || [ "$feedback" = "null" ]; then
-      echo "從 API 獲取回饋失敗。"
-      feedback="抱歉，AI 教練目前無法提供回饋，請稍後再試。"
-    fi
+          # 呼叫 API 的部分維持不變
+          API_RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$JSON_PAYLOAD")
 
-    echo "feedback<<EOF" >> "$GITHUB_OUTPUT"
-    echo "$feedback" >> "$GITHUB_OUTPUT"
-    echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "---[FULL API RESPONSE]---"
+          echo "$API_RESPONSE"
+          echo "---[END FULL API RESPONSE]---"
+
+          feedback=$(echo "$API_RESPONSE" | jq -r '.candidates[0].content.parts[0].text')
+
+          echo "---[PARSED FEEDBACK]---"
+          echo "$feedback"
+          echo "---[END PARSED FEEDBACK]---"
+          
+          if [ -z "$feedback" ] || [ "$feedback" = "null" ]; then
+            echo "從 API 獲取回饋失敗。"
+            feedback="抱歉，AI 教練目前無法提供回饋，請稍後再試。"
+          fi
+
+          echo "feedback<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$feedback" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT" 
