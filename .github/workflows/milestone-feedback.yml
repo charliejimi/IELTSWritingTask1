@@ -20,21 +20,22 @@ jobs:
       - name: Generate AI Feedback
         id: ai_feedback
         env:
-          # 將 issue body 和 API key 作為環境變數傳入，更安全且易於管理
           ISSUE_BODY: ${{ github.event.issue.body }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           set -x
           
-          # 從 ISSUE_BODY 中提取所有圖片 URL
-          # 處理兩種來源：一般 URL 和 Base64 編碼的資料
+          # 準備 prompt 文字
+          # 這裡我們將整個 Issue 的內容作為 prompt
+          PROMPT_TEXT="$ISSUE_BODY"
+          
+          # 從 ISSUE_BODY 中提取圖片 URL 或 Base64 數據
           IMAGE_DATA_PARTS="[]"
           
           # 1. 提取所有 Base64 圖片數據
           BASE64_PATTERNS=$(echo "$ISSUE_BODY" | grep -oP 'data:image/[^;]*;base64,[^"]*' || true)
           if [ -n "$BASE64_PATTERNS" ]; then
             while IFS= read -r line; do
-              # 提取 MIME 類型和數據
               MIME_TYPE=$(echo "$line" | cut -d';' -f1 | sed 's/data://')
               BASE64_DATA=$(echo "$line" | cut -d',' -f2)
               
@@ -63,12 +64,13 @@ jobs:
             fi
           fi
           
-          # 建立一個陣列來儲存 API 請求的內容部分
+          # 構建 API 請求的內容部分
           PARTS_ARRAY="[]"
           
           # 將處理後的文字作為第一部分加入陣列
-          PROMPT_TEXT=$(echo "$ISSUE_BODY" | sed -r 's/data:image[^)]*\)//g' | sed -r 's/<img[^>]*>//g' | sed -r 's/^[[:space:]]*//' | sed '/^$/d' || true)
-          PARTS_ARRAY=$(echo "$PARTS_ARRAY" | jq --arg text "$PROMPT_TEXT" '. + [{"text": $text}]')
+          # 這裡移除了圖片的 HTML 標籤和 Base64 數據，避免重複
+          PROMPT_TEXT_CLEANED=$(echo "$ISSUE_BODY" | sed -r 's/data:image[^)]*\)//g' | sed -r 's/<img[^>]*>//g' | sed -r 's/^[[:space:]]*//' | sed '/^$/d' || true)
+          PARTS_ARRAY=$(echo "$PARTS_ARRAY" | jq --arg text "$PROMPT_TEXT_CLEANED" '. + [{"text": $text}]')
           
           # 將圖片部分加入陣列
           PARTS_ARRAY=$(echo "$PARTS_ARRAY" | jq --argjson images "$IMAGE_DATA_PARTS" '. + $images')
