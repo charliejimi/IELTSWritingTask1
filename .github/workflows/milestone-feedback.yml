@@ -28,10 +28,10 @@ jobs:
           
           # 從 ISSUE_BODY 中提取所有圖片 URL
           # 處理兩種來源：一般 URL 和 Base64 編碼的資料
-          IMAGE_DATA_PARTS=""
+          IMAGE_DATA_PARTS="[]"
           
           # 1. 提取所有 Base64 圖片數據
-          BASE64_PATTERNS=$(echo "$ISSUE_BODY" | grep -oP 'data:image/[^;]*;base64,[^"]*')
+          BASE64_PATTERNS=$(echo "$ISSUE_BODY" | grep -oP 'data:image/[^;]*;base64,[^"]*' || true)
           if [ -n "$BASE64_PATTERNS" ]; then
             while IFS= read -r line; do
               # 提取 MIME 類型和數據
@@ -46,8 +46,8 @@ jobs:
           fi
           
           # 2. 如果沒有 Base64 圖片，則嘗試從 URL 下載
-          if [ -z "$IMAGE_DATA_PARTS" ]; then
-            IMAGE_URLS=$(echo "$ISSUE_BODY" | grep -oP '<img\s+[^>]*?src="\K[^"]*')
+          if [ "$(echo "$IMAGE_DATA_PARTS" | jq 'length')" -eq 0 ]; then
+            IMAGE_URLS=$(echo "$ISSUE_BODY" | grep -oP '<img\s+[^>]*?src="\K[^"]*' || true)
             if [ -n "$IMAGE_URLS" ]; then
               for URL in $IMAGE_URLS; do
                 echo "Downloading image from: $URL"
@@ -67,7 +67,7 @@ jobs:
           PARTS_ARRAY="[]"
           
           # 將處理後的文字作為第一部分加入陣列
-          PROMPT_TEXT=$(echo "$ISSUE_BODY" | sed -r 's/data:image[^)]*\)//g' | sed -r 's/<img[^>]*>//g' | sed -r 's/^[[:space:]]*//' | sed '/^$/d')
+          PROMPT_TEXT=$(echo "$ISSUE_BODY" | sed -r 's/data:image[^)]*\)//g' | sed -r 's/<img[^>]*>//g' | sed -r 's/^[[:space:]]*//' | sed '/^$/d' || true)
           PARTS_ARRAY=$(echo "$PARTS_ARRAY" | jq --arg text "$PROMPT_TEXT" '. + [{"text": $text}]')
           
           # 將圖片部分加入陣列
