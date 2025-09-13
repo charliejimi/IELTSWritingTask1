@@ -105,7 +105,7 @@ jobs:
           echo "---[END JSON PAYLOAD]---"
 
           # 呼叫 API 的部分維持不變
-          API_RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}" \
+          API_RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}" \
             -H "Content-Type: application/json" \
             -d "$JSON_PAYLOAD")
 
@@ -127,3 +127,16 @@ jobs:
           echo "feedback<<EOF" >> "$GITHUB_OUTPUT"
           echo "$feedback" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT" 
+      # 第二步：將 AI 回饋留言到 issue
+      - name: Post AI feedback to the issue
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          # 這個 token 是由 GitHub Actions 自動提供的，不需要額外設定 secret
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            ---
+            ### 🎉 任務完成！AI 專案教練回饋：
+            
+            ${{ steps.ai_feedback.outputs.feedback }}
+            ---
