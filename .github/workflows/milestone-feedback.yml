@@ -25,6 +25,9 @@ jobs:
           ISSUE_BODY: ${{ github.event.issue.body }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
+          # 印出執行的每一行指令
+          set -x
+          
           # 準備 prompt 文字
           # 使用 here-document 語法 (cat <<'EOF') 讓多行文字處理更簡單清晰
           PROMPT_TEXT=$(cat <<EOF
@@ -39,6 +42,11 @@ jobs:
           ---
           EOF
           )
+          
+          # 印出 prompt 變數的內容，確認 issue body 有被正確代入
+          echo "---[PROMPT TEXT]---"
+          echo "$PROMPT_TEXT"
+          echo "---[END PROMPT TEXT]---"
 
           # 使用 printf 準備 JSON payload，並將 prompt 注入
           # 這樣可以避免因 prompt 內容中的特殊字元導致 JSON 格式錯誤
@@ -61,12 +69,23 @@ jobs:
               }
             ]
           }' "$PROMPT_TEXT")
+          
+          # 印出準備要發送的 JSON payload，檢查格式是否正確
+          echo "---[JSON PAYLOAD]---"
+          echo "$JSON_PAYLOAD"
+          echo "---[END JSON PAYLOAD]---"
 
           # 發送請求到 Gemini API 並解析回覆
           # 將 curl 和 jq 的命令串在一起，直接取得結果
           feedback=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}" \
             -H "Content-Type: application/json" \
             -d "$JSON_PAYLOAD" | jq -r '.candidates[0].content.parts[0].text')
+            
+          # 印出從 API 收到的原始 feedback
+          echo "---[API FEEDBACK]---"
+          echo "$feedback"
+          echo "---[END API FEEDBACK]---"
+
           
           # 增加一個簡單的錯誤處理，如果 API 沒有回傳內容，就提供一個預設訊息
           if [ -z "$feedback" ] || [ "$feedback" = "null" ]; then
