@@ -1,30 +1,120 @@
-name: Download Issue Images on Close
+# 工作流程名稱
+name: IELTS AI Feedback
 
+# 觸發條件：當 issue 被關閉時執行
+# 修正了 'on' 觸發器的縮排語法
 on:
   issues:
     types: [closed]
 
+# 定義工作
 jobs:
-  download-images:
+  milestone-feedback:
+    # 運行的虛擬機環境
     runs-on: ubuntu-latest
+    # 設定權限，允許 action 讀取 issue 內容並寫入留言
     permissions:
       issues: write
-      contents: write
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Get issue body
-        id: get_issue_body
-        run: echo "body<<EOF" >> $GITHUB_ENV && echo "${{ github.event.issue.body }}" >> $GITHUB_ENV && echo "EOF" >> $GITHUB_ENV
-
-      - name: Download images
+      # 第一步：產生 AI 回饋
+      - name: Generate AI Feedback
+        id: ai_feedback
         env:
-          ISSUE_BODY: ${{ env.body }}
+          # 將 issue body 和 API key 作為環境變數傳入，更安全且易於管理
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          mkdir -p images
-          echo "$ISSUE_BODY" | grep -o 'https://github.com/[^ ]*assets/[^ ]*' | while read url; do
-            filename=$(basename "$url")
-            curl -L -o "images/$filename" "$url"
-            echo "Downloaded: $filename"
-          done
+          # 印出執行的每一行指令
+          set -x
+          
+          # 準備 prompt 文字
+          # 使用 here-document 語法 (cat <<'EOF') 讓多行文字處理更簡單清晰
+          PROMPT_TEXT=$(cat <<EOF
+          我們剛完成一個雅思寫作任務，請根據以下資訊給予回饋。請你扮演一位資深雅思教練，針對文章的寫作努力程度、自評與 AI 評分的差異，給予簡潔、精準且具體的正向回饋，並提出一到兩點明確的改進方向，格式要清晰易讀。
+
+          ---
+
+          以下是 Issue 內容：
+
+          ${ISSUE_BODY}
+
+          ---
+          EOF
+          )
+          
+          # 印出 prompt 變數的內容，確認 issue body 有被正確代入
+          echo "---[PROMPT TEXT]---"
+          echo "$PROMPT_TEXT"
+          echo "---[END PROMPT TEXT]---"
+          
+          # 【優化】使用 jq 來建立 JSON payload，這樣最安全，能自動處理所有特殊字元
+          JSON_PAYLOAD=$(jq -n \
+            --arg prompt_text "$ISSUE_BODY" \
+            '{
+              "systemInstruction": {
+                "parts": [
+                  {
+                    "text": "你是一位專業的雅思教練。請針對剛完成的雅思寫作任務，給予簡潔、精準且具體的正向回饋，並提出一到兩點明確的改進方向，格式要清晰易讀。"
+                  }
+                ]
+              },
+              "contents": [
+                {
+                  "role": "user",
+                  "parts": [
+                    {
+                      "text": $prompt_text
+                    }
+                  ]
+                }
+              ]
+            }') 
+          
+          echo "---[JSON PAYLOAD]---"
+          echo "$JSON_PAYLOAD"
+          echo "---[END JSON PAYLOAD]---"
+
+          # 【修正】1. 更新模型名稱為 gemini-1.5-flash-latest
+          # 【修正】2. 先儲存完整的 API 回應，方便除錯
+          API_RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$JSON_PAYLOAD")
+
+          echo "---[FULL API RESPONSE]---"
+          echo "$API_RESPONSE"
+          echo "---[END FULL API RESPONSE]---"
+
+          # 從完整的 API 回應中解析出需要的文字
+          feedback=$(echo "$API_RESPONSE" | jq -r '.candidates[0].content.parts[0].text')
+
+          echo "---[PARSED FEEDBACK]---"
+          echo "$feedback"
+          echo "---[END PARSED FEEDBACK]---"
+
+          
+          # 增加一個簡單的錯誤處理，如果 API 沒有回傳內容，就提供一個預設訊息
+          if [ -z "$feedback" ] || [ "$feedback" = "null" ]; then
+            echo "從 API 獲取回饋失敗。"
+            feedback="抱歉，AI 教練目前無法提供回饋，請稍後再試。"
+          fi
+
+          # 將多行回饋內容寫入 GITHUB_OUTPUT
+          # 這是官方推薦處理多行輸出的方式
+          echo "feedback<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$feedback" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      # 第二步：將 AI 回饋留言到 issue
+      - name: Post AI feedback to the issue
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          # 這個 token 是由 GitHub Actions 自動提供的，不需要額外設定 secret
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            ---
+            ### 🎉 任務完成！AI 專案教練回饋：
+            
+            ${{ steps.ai_feedback.outputs.feedback }}
+            ---
