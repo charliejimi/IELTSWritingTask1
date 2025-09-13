@@ -74,6 +74,11 @@ jobs:
           echo "---[JSON PAYLOAD]---"
           echo "$JSON_PAYLOAD"
           echo "---[END JSON PAYLOAD]---"
+          
+          # 檢查Gemini API Key
+          echo "---[Gemini API Key]---"
+          echo "$GEMINI_API_KEY"
+          echo "---[Gemini API Key]---"
 
           # 發送請求到 Gemini API 並解析回覆
           # 將 curl 和 jq 的命令串在一起，直接取得結果
