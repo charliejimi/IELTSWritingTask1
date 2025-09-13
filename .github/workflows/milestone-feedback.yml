@@ -77,7 +77,7 @@ jobs:
 
           # 【修正】1. 更新模型名稱為 gemini-1.5-flash-latest
           # 【修正】2. 先儲存完整的 API 回應，方便除錯
-          API_RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}" \
+          API_RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}" \
             -H "Content-Type: application/json" \
             -d "$JSON_PAYLOAD")
 
