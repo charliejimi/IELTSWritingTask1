@@ -1,139 +1,30 @@
-# 工作流程名稱
-name: IELTS AI Feedback
+name: Download Issue Images on Close
 
-# 觸發條件：當 issue 被關閉時執行
 on:
   issues:
     types: [closed]
 
-# 定義工作
 jobs:
-  milestone-feedback:
-    # 運行的虛擬機環境
+  download-images:
     runs-on: ubuntu-latest
-    # 設定權限，允許 action 讀取 issue 內容並寫入留言
     permissions:
       issues: write
-
+      contents: write
     steps:
-      # 第一步：產生 AI 回饋
-      - name: Generate AI Feedback
-        id: ai_feedback
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get issue body
+        id: get_issue_body
+        run: echo "body<<EOF" >> $GITHUB_ENV && echo "${{ github.event.issue.body }}" >> $GITHUB_ENV && echo "EOF" >> $GITHUB_ENV
+
+      - name: Download images
         env:
-          ISSUE_BODY: ${{ github.event.issue.body }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ISSUE_BODY: ${{ env.body }}
         run: |
-          set -x
-          
-          # 準備 prompt 文字
-          # 這裡我們將整個 Issue 的內容作為 prompt
-          PROMPT_TEXT="$ISSUE_BODY"
-          
-          # 從 ISSUE_BODY 中提取圖片 URL 或 Base64 數據
-          IMAGE_DATA_PARTS="[]"
-          
-          # 1. 提取所有 Base64 圖片數據
-          BASE64_PATTERNS=$(echo "$ISSUE_BODY" | grep -oP 'data:image/[^;]*;base64,[^"]*' || true)
-          if [ -n "$BASE64_PATTERNS" ]; then
-            while IFS= read -r line; do
-              MIME_TYPE=$(echo "$line" | cut -d';' -f1 | sed 's/data://')
-              BASE64_DATA=$(echo "$line" | cut -d',' -f2)
-              
-              if [ -n "$BASE64_DATA" ]; then
-                IMAGE_PART=$(jq -n --arg mime "$MIME_TYPE" --arg data "$BASE64_DATA" '{"inlineData": {"mimeType": $mime, "data": $data}}')
-                IMAGE_DATA_PARTS=$(echo "$IMAGE_DATA_PARTS" | jq '. + ['"$IMAGE_PART"']')
-              fi
-            done <<< "$BASE64_PATTERNS"
-          fi
-          
-          # 2. 如果沒有 Base64 圖片，則嘗試從 URL 下載
-          if [ "$(echo "$IMAGE_DATA_PARTS" | jq 'length')" -eq 0 ]; then
-            IMAGE_URLS=$(echo "$ISSUE_BODY" | grep -oP '<img\s+[^>]*?src="\K[^"]*' || true)
-            if [ -n "$IMAGE_URLS" ]; then
-              for URL in $IMAGE_URLS; do
-                echo "Downloading image from: $URL"
-                BASE64_DATA=$(curl -s -L "$URL" | base64 -w 0)
-                
-                if [ -n "$BASE64_DATA" ]; then
-                  IMAGE_PART=$(jq -n --arg data "$BASE64_DATA" '{"inlineData": {"mimeType": "image/jpeg", "data": $data}}')
-                  IMAGE_DATA_PARTS=$(echo "$IMAGE_DATA_PARTS" | jq '. + ['"$IMAGE_PART"']')
-                else
-                  echo "Failed to download or encode image from: $URL. Skipping."
-                fi
-              done
-            fi
-          fi
-          
-          # 構建 API 請求的內容部分
-          PARTS_ARRAY="[]"
-          
-          # 將處理後的文字作為第一部分加入陣列
-          # 這裡移除了圖片的 HTML 標籤和 Base64 數據，避免重複
-          PROMPT_TEXT_CLEANED=$(echo "$ISSUE_BODY" | sed -r 's/data:image[^)]*\)//g' | sed -r 's/<img[^>]*>//g' | sed -r 's/^[[:space:]]*//' | sed '/^$/d' || true)
-          PARTS_ARRAY=$(echo "$PARTS_ARRAY" | jq --arg text "$PROMPT_TEXT_CLEANED" '. + [{"text": $text}]')
-          
-          # 將圖片部分加入陣列
-          PARTS_ARRAY=$(echo "$PARTS_ARRAY" | jq --argjson images "$IMAGE_DATA_PARTS" '. + $images')
-          
-          # 建立完整的 JSON payload
-          JSON_PAYLOAD=$(jq -n \
-            --argjson parts "$PARTS_ARRAY" \
-            '{
-              "systemInstruction": {
-                "parts": [
-                  {
-                    "text": "你是一位專業的雅思教練。請針對剛完成的雅思寫作任務，參考圖片內容，給予簡潔、精準且具體的正向回饋，並提出一到兩點明確的改進方向，格式要清晰易讀。"
-                  }
-                ]
-              },
-              "contents": [
-                {
-                  "parts": $parts
-                }
-              ]
-            }')
-          
-          echo "---[JSON PAYLOAD]---"
-          echo "$JSON_PAYLOAD"
-          echo "---[END JSON PAYLOAD]---"
-
-          API_RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}" \
-            -H "Content-Type: application/json" \
-            -d "$JSON_PAYLOAD" \
-            -w "\n%{http_code}")
-            
-          HTTP_CODE=$(echo "$API_RESPONSE" | tail -n1)
-          API_RESPONSE=$(echo "$API_RESPONSE" | head -n -1)
-
-          echo "---[FULL API RESPONSE]---"
-          echo "$API_RESPONSE"
-          echo "---[END FULL API RESPONSE]---"
-          echo "HTTP Status Code: $HTTP_CODE"
-
-          feedback=$(echo "$API_RESPONSE" | jq -r '.candidates[0].content.parts[0].text')
-          
-          if [ "$HTTP_CODE" -ne 200 ] || [ -z "$feedback" ] || [ "$feedback" = "null" ]; then
-            echo "從 API 獲取回饋失敗，HTTP Status Code: $HTTP_CODE"
-            feedback="抱歉，AI 教練目前無法提供回饋，請稍後再試。請檢查你的 API 金鑰或網路連線。"
-          fi
-
-          echo "---[PARSED FEEDBACK]---"
-          echo "$feedback"
-          echo "---[END PARSED FEEDBACK]---"
-
-          echo "feedback<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$feedback" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
-
-      # 第二步：將 AI 回饋留言到 issue
-      - name: Post AI feedback to the issue
-        uses: peter-evans/create-or-update-comment@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.issue.number }}
-          body: |
-            ---
-            ### 🎉 任務完成！AI 專案教練回饋：
-            
-            ${{ steps.ai_feedback.outputs.feedback }}
-            ---
+          mkdir -p images
+          echo "$ISSUE_BODY" | grep -o 'https://github.com/[^ ]*assets/[^ ]*' | while read url; do
+            filename=$(basename "$url")
+            curl -L -o "images/$filename" "$url"
+            echo "Downloaded: $filename"
+          done
