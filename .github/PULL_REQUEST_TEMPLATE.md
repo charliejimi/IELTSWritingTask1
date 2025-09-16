@@ -11,9 +11,13 @@ Closes #<issue_number>
 
 ## 🛡️ 修改前後風險值
 Risk Value (Before):
+
 Risk Value Afterwards:
+
 Δ(改善幅度):
+
 Δ%(改善百分比):
+
 剩餘風險判斷(需要進一步學習/已可接受):
 
 ➡️ 總體風險值： XX → XX （改善 XX%）
