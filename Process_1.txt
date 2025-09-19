@@ -1,6 +1,6 @@
 The images illustrate two distinct processes involved in making cement and concrete.
 
-Overall, the manufacture of cement is a five-step linear process, beginning with the crushing of limestone and clay, and culminating with the packaging of the end product into bags. On the other hand, the production of concrete is a simply mixing process, with four raw materials combined to form concrete. 
+Overall, the production of cement involves numerous stages; it is a linear, man-made process, starting with the crushing of raw materials, followed by the steps of mixing and heating, ending with the packing of the product. The producing of concrete is a single-step process, where the cement, along with three other materials, is blended in a rotating bin to form the end product.
 
 Regarding cement production, the raw materials clay and limestone are pulverized by a crusher, then sent into a mixer for thorough mixing.   After that, the mixture is conveyed through a rotating heater, with heat being applied externally.  Then the heated mixture is fed through a grinder where  it is ground into a fine powder, which is ultimately packaged into bags.
 
