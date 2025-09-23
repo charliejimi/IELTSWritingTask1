@@ -4,4 +4,4 @@ Overall, the manufacturing of cement is a five-step linear process. It begins wi
 
 Regarding cement production, the raw materials clay and limestone are pulverized by a crusher, and the powder is sent into a mixer for thorough mixing. The mixture is conveyed through a rotating heater, with heat being applied externally.  It is fed through a grinder where  it is ground into a fine powder, which is ultimately packed into bags.
 
-Looking at concrete production, it involves combining four ingredients; the combination is composed of half sand, a quarter of gravel, and 15% and 10% of cement and water, respectively. These four materials are thereafter rotated clockwise in a concrete mixer until the final product is produced.
+Unlike the procedure for making cement, which is complicated, manufacturing concrete involves combining four ingredients; the combination is composed of half sand, a quarter of gravel, and 15% and 10% of cement and water, respectively. These four materials are thereafter rotated clockwise in a concrete mixer until the final product is produced.
