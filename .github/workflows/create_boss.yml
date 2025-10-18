@@ -1,0 +1,88 @@
+name: Validate Task File & Suggest Candidates
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  validate_file:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Parse file name from issue
+        id: parse
+        run: |
+          echo "Parsing file name from issue body..."
+          # 這個腳本會先找到 '文章檔案連結' 的行，然後迴圈尋找下一個非空白行。
+          # 這是最穩定的解決方案，可以完美處理多餘的換行或空格。
+          FILE_NAME=$(echo "${{ github.event.issue.body }}" | awk '
+          /文章檔案連結/{
+            found_title=1;
+            next;
+          }
+          found_title && length($0) > 0 {
+            print $0;
+            exit;
+          }')
+
+          # 檢查是否成功提取檔案名稱
+          if [ -z "$FILE_NAME" ]; then
+            echo "Error: Could not find a valid file name after '文章檔案連結'."
+            exit 1
+          fi
+
+          # 移除任何前後的空白字元
+          FILE_NAME=$(echo "$FILE_NAME" | xargs)
+
+          echo "file_name=$FILE_NAME" >> $GITHUB_ENV
+          echo "Extracted file name: $FILE_NAME"
+
+      - name: List all txt files
+        id: listfiles
+        run: |
+          # Use `find` to get the list and store it with newlines for safe iteration.
+          find . -maxdepth 1 -name "*.txt" -printf "%f\n" > all_files.txt
+          echo "Available files:"
+          cat all_files.txt
+
+      - name: Check if file exists and suggest candidates
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          FOUND=false
+          while read -r f; do
+            if [ "$f" = "${{ env.file_name }}" ]; then
+              FOUND=true
+              break
+            fi
+          done < all_files.txt
+
+          if [ "$FOUND" = true ]; then
+            echo "File exists."
+          else
+            echo "File not found. Suggesting candidates..."
+            AVAILABLE_FILES=$(cat all_files.txt)
+            gh issue comment ${{ github.event.issue.number }} --body "⚠️ 檔案 `${{ env.file_name }}` 不存在！可選檔案如下:\n$AVAILABLE_FILES"
+            exit 1
+          fi
+
+      - name: Add label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: file:${{ env.file_name }}
+
+      - name: Add link comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            ✅ 檔案已驗證存在
+            檔案連結: [${{ env.file_name }}](https://github.com/${{ github.repository }}/blob/master/${{ env.file_name }})
