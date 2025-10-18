@@ -1,0 +1,58 @@
+name: Create Boss Milestone
+
+on:
+  workflow_dispatch:
+    inputs:
+      boss_name:
+        description: '魔王名稱'
+        required: true
+      level:
+        description: '魔王等級'
+        required: true
+
+jobs:
+  create_milestone:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Milestone
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const boss = core.getInput('boss_name');
+            const level = core.getInput('level');
+            const title = `[Boss] ${boss} Lv.${level} Challenge`;
+            const description = `
+### 🎯 魔王名稱
+${boss} Boss
+
+### 🧩 錯誤描述
+- 典型表現: ...
+- 錯誤示例: ...
+- 根本原因: ...
+
+### 🎯 改進目標
+- Band 7: ...
+- Band 8: ...
+- Band 9: ...
+
+### 📘 Wiki 連結
+[Wiki Page](../../wiki/Boss/${boss}Boss)
+
+### ✅ 完成條件
+- 分析三篇舊作
+- 撰寫修正版
+- 自評達標
+- 更新 Wiki
+
+### 🧮 EXP 與評價紀錄
+- 時間投入
+- 認知負荷
+- 輸出強度
+`;
+            await github.rest.issues.createMilestone({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              description: description
+            });
