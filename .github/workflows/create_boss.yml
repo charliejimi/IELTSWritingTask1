@@ -1,27 +1,36 @@
 name: Create Boss Milestone
 
+# 手動觸發 workflow，並定義輸入參數
 on:
   workflow_dispatch:
     inputs:
       boss_name:
         description: '魔王名稱'
         required: true
+        type: string
       level:
         description: '魔王等級'
         required: true
+        type: string # 為了統一處理，通常等級也會設為 string
 
 jobs:
   create_milestone:
     runs-on: ubuntu-latest
     steps:
       - name: Create Milestone
-        uses: actions/github-script@v6
+        # 使用 actions/github-script 執行 API 呼叫
+        uses: actions/github-script@v7 # 推薦使用最新版本
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const boss = core.getInput('boss_name');
-            const level = core.getInput('level');
+            // 修正：從 context.payload.inputs 取得 workflow_dispatch 的輸入參數
+            const boss = context.payload.inputs.boss_name;
+            const level = context.payload.inputs.level;
+
+            // 組裝里程碑的標題
             const title = `[Boss] ${boss} Lv.${level} Challenge`;
+
+            // 組裝里程碑的描述 (使用 Markdown 格式)
             const description = `
 ### 🎯 魔王名稱
 ${boss} Boss
@@ -50,9 +59,13 @@ ${boss} Boss
 - 認知負荷
 - 輸出強度
 `;
+            
+            // 呼叫 GitHub REST API 創建里程碑
             await github.rest.issues.createMilestone({
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: title,
               description: description
             });
+
+            console.log(\`成功創建里程碑: \${title}\`);
