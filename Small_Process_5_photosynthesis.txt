@@ -1,0 +1,7 @@
+This diagram illustrates the interaction cycle between vegetation and atmosphere. 
+
+Overall, the interaction is a cyclic, 4-stage process, beginning with absorbing, converting, releasing and culminating with respirating, which repeats continuously. 
+
+During the initial two stages, green plants absorb solar energy, serving as the input for photosynthesis. Meanwhile, they take in carbonoxygen  and convert it into carbohydrates by utilizing solar energy, which leads to their growth and biomass accumulation. 
+
+Following the intake of carbonoxygen, they release oxygen to air for human respiration. After having consumed oxygen, human generate carbonoxygen and feed back it to atmosphere for green plants to take in, which results in the formation of continuous cylical flow of the interaction process.              
