@@ -1,0 +1,8 @@
+The diagram provides information about the manufacture of a motorcycle. 
+
+Overall, the manufacture of a scooter is a linear, man-made, five-step process. It begins with fabricating, finishing, the assembly of components, and fitting, and culminating in the quality inspection and the product distribution.     
+
+Initially, the raw materials steel coils, plastic polymers, electronic wirings, engines, auxiliary materials are retrieved and the steel coils are used to fabricate the chassis of a scooter. During this step, the material is transferred to a mold to form the chassis of a scooter, followed by a welding process which is done by by robotic hands. Subsequently, the chassis is painted and conveyed to a dryer to ensure its structure is anti-rusted; meanwhile, the seat of a motorcycle is manufactured. Once having been produced, the core components are mounted with an engine, one of the raw materials, and are attached with tires, with electronic wirings being used to link all of the parts. 
+
+Following the combination of all the parts of a motorcycle, the auxiliary materials front mirrors and back lights are put on the scooter to be calibrated. Afterwards, the motorcycle is placed on a convayor for a final inspection and then is ready to be distributed to markets.                 
+     
