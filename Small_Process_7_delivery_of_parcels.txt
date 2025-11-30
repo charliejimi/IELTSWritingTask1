@@ -1,0 +1,9 @@
+The image illustrates the delivery and retrieval process of parcels using an automated locker system. 
+
+Overall, delivering and retrieving packages by using an automated locker system is a 4-step, sequential process.
+It begins with allocation, notification, and validation, then culmintates in the retrieval of a parcel. 
+
+During the inital two stages, parcels are delivered to a store and stored in one of the drawers of the locker system when a barcode on the parcel is scanned, upon which the drawer number is shown. Subsequently, the drawer is locked and the message, ready for pickup, from the locker system is transferred to a central system server in which a notification message along with a pickup code is transmitted to the package receiptant. 
+
+Following the message notification step, the drawer is unlocked when the pickup code is entered to the locker system and the receiptant is authenticated.
+Afterwards, the parcel is retrieved, and the message, completed, is sent to and updated in the centeral system, so that the drawer status becomes available and ready to reuse.       
