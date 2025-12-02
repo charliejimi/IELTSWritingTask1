@@ -1,0 +1,9 @@
+The image gives information about the process of traffic flow and the flow process of drainage and utility supply systems in an urban city. 
+
+Overall, the traffic flow is a three-state, sequential process, beginning with parking and moving, then culminating in the arrival at destination points.
+The drainage and utility supply systems both are linear processes, and they entail four and three steps, separately. The drainage system starts with channelling and ends with discharging; the utility system begins with transmission and culminates in heat exhaustion.
+
+Regarding the traffic flow process, vehicles and scooters are initially stationary before entering the city, after which they commence movement within the road network. Afterwards, they are conveyed to the destination points, buildings and parking areas, then goods and people are transported to other nodes of the city. 
+
+As for the drainage system, rainfall is collected from the roofs of houses and directed to the ground through their pipes. Subsequently, the rainfall on the ground is aggregated in the areas of low altitude; meanwhile, some of the rainfall is fed into the underground pipe network via gutters and discharged to the sea. Looking into the utility supply system, energy is supplied from a power station, then transmitted over electric transmission lines and distributed to individuals' houses. From this, the electric power is applied to the appliances in those houses and the unused heat is exhausted into the outside of the houses.    	   
+   
