@@ -1,10 +1,11 @@
 The image illustrates the manufacturing process of tennis balls. 
 
 Overall, producing tennis balls is a linear, man-made, nine-step process. 
-It commences with mixing, molding, the application of adhesive, fusing, cutting, coating, wrapping, then culminates in the final product. 
+It commences with mixing, molding, the applying of an adhesive, fusing, cutting, coating, wrapping, then culminates in the inspection and packaging of the final product. 
 
-During the initial four steps, the raw materials, raw rubber polymers and chemical additives, are mixed together, with an external heat being applied as they are being blended. Subsequently, the mixture is poured into a mold to form hollow hemispherical shells, followed by the application of adhesive to the rims of the shells. Once the application step is done, the shells are placed into a machine which fuses the shells together while pressurized gas is injected into the machince. 
+During the initial four steps, the raw materials, raw rubber polymers and chemical additives, are mixed together, with an external heat being applied as they are being blended. Subsequently, the mixture is poured into a mold to form hollow hemispherical shells, followed by the implementation of applying 
+an adhesive to the rims of the shells. Upon the applying step is done, the shells are placed into a machine which fuses the shells together while pressurized gas is injected into the machince. 
 
-Following the fusing step, the raw material of the shells cover, synthetic felt sheets, is cut into dumbbell shapes and sprayed with adhesive by a coating, binding agent. Upon the felt pieces are made, the shells are mechianically wrapped with these covers and the resultant is conveyed into a pressurized containers to be steamed to meet a good quailty. After that, the final product, tennis balls, are inspected and packaged to be delivered. 
+Following the fusing step, the covers of the shells are made, where the raw material, synthetic felt sheets, is cut into the shape of a dumbbell, and an adhesive is sprayed on their surface by a coating, binding agent. Once the felt pieces are produced, the shells are wrapped with these covers mechanically, and the resultant is conveyed into a pressurized containers to be steamed. Afterwards, the inspection of the final product, tennis balls, is implemented; upon the completion of this step, they are packaged for delivery. 
 
 (50mins)              
