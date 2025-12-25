@@ -1,4 +1,4 @@
 The image depicts the management of the transition of ships through the Suez Canal's narrow section. 
 Overall, managing the ship to pass through the canal's narrow section is a linear, man-made process, involving 3 steps: entering, waiting, and passing. 
-Initially, a ship enters the Suez Canal; once it approaches the entrance of the narrow part that accommodates only one ship, the ship is required to wait for another ship to pass through first. This clearing of the narrow section maintains the traffic flow clear. 
-Upon the ship fully passing through, the waiting ship in turn traverses the canal's narrow part.  
+Initially, a ship enters the Suez Canal; once it approaches the entrance of the narrow part that permits only one vessel to pass at a time, the ship is required to wait for another ship to pass through first. This clearing of the narrow section keeps the traffic flow smooth. 
+Upon the vessel fully navigating through the channel, the waiting ship in turn traverses the canal's narrow part.  
